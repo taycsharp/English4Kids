@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/home_screen.dart';
 import 'services/progress_service.dart';
+import 'services/sound_effect_service.dart';
 import 'services/speech_service.dart';
 import 'services/tts_service.dart';
 
@@ -16,10 +17,12 @@ class _HappyEnglishKidsAppState extends State<HappyEnglishKidsApp> {
   final progressService = ProgressService();
   final ttsService = TtsService();
   final speechService = SpeechService();
+  final soundEffectService = SoundEffectService();
 
   @override
   void dispose() {
     ttsService.dispose();
+    soundEffectService.dispose();
     super.dispose();
   }
 
@@ -29,6 +32,7 @@ class _HappyEnglishKidsAppState extends State<HappyEnglishKidsApp> {
       progressService: progressService,
       ttsService: ttsService,
       speechService: speechService,
+      soundEffectService: soundEffectService,
       child: MaterialApp(
         title: 'Happy English Kids',
         debugShowCheckedModeBanner: false,
@@ -59,12 +63,14 @@ class AppScope extends InheritedWidget {
     required this.progressService,
     required this.ttsService,
     required this.speechService,
+    required this.soundEffectService,
     required super.child,
   });
 
   final ProgressService progressService;
   final TtsService ttsService;
   final SpeechService speechService;
+  final SoundEffectService soundEffectService;
 
   static AppScope of(BuildContext context) {
     final element = context.getElementForInheritedWidgetOfExactType<AppScope>();

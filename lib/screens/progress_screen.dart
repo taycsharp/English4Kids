@@ -46,7 +46,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
             decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFFFD54F), Color(0xFFFFA726)]), borderRadius: BorderRadius.circular(34)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('⭐ ${progress.totalStars} Stars', style: const TextStyle(fontSize: 34, color: Colors.white, fontWeight: FontWeight.w900)),
-              Text(progress.levelName, style: const TextStyle(fontSize: 23, color: Colors.white, fontWeight: FontWeight.w800)),
+              Text('Level: ${progress.levelName}', style: const TextStyle(fontSize: 23, color: Colors.white, fontWeight: FontWeight.w800)),
             ]),
           ),
           const SizedBox(height: 18),

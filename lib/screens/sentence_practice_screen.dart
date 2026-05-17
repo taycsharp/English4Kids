@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../data/sample_words.dart';
+import '../models/progress_data.dart';
 import '../widgets/reward_dialog.dart';
 
 class SentencePracticeScreen extends StatefulWidget {
@@ -22,24 +24,42 @@ class _SentencePracticeScreenState extends State<SentencePracticeScreen> {
   }
 
   Future<void> _practice() async {
+    debugPrint('[SentencePracticeScreen] Speak button tapped');
     final scope = AppScope.of(context);
     final word = allWords[index];
     setState(() {
       listening = true;
       message = 'I am listening...';
     });
+    final previous = await scope.progressService.loadProgress();
     final text = await scope.speechService.listenOnce(timeout: const Duration(seconds: 6));
+    await scope.speechService.stopListening();
+
     final ok = scope.speechService.sentenceContainsKeywords(text, _keywords(word.simpleSentence));
-    await scope.progressService.addPronunciationAttempt(word.id, ok);
+    final feedbackText = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
+    debugPrint('[SentencePracticeScreen] feedback text created: $feedbackText');
+    final updated = await scope.progressService.addPronunciationAttempt(word.id, ok);
+
     if (!mounted) return;
     setState(() {
       listening = false;
       heard = text;
-      message = ok ? 'Great sentence! ⭐' : 'Good try! Say it again.';
+      message = feedbackText;
     });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    debugPrint('[SentencePracticeScreen] before calling speakFeedback: $feedbackText');
+    await scope.ttsService.speakFeedback(feedbackText);
+    debugPrint('[SentencePracticeScreen] after calling speakFeedback');
+
     if (ok) {
-      await RewardDialog.show(context, 'Super speaker! ⭐');
+      await scope.soundEffectService.playCorrect();
+      if (!mounted) return;
+      final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
+      await RewardDialog.show(context, levelUp ? 'Super speaking!\n${updated.levelName}!' : 'Super speaking!', levelUp: levelUp);
       if (mounted) setState(() => index = (index + 1) % allWords.length);
+    } else {
+      await scope.soundEffectService.playTryAgain();
     }
   }
 
@@ -73,7 +93,7 @@ class _SentencePracticeScreenState extends State<SentencePracticeScreen> {
             Expanded(child: FilledButton.tonalIcon(onPressed: listening ? null : _practice, icon: const Icon(Icons.mic_rounded), label: const Text('Speak'))),
           ]),
           const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => setState(() => index = (index + 1) % allWords.length), child: const Text('Next'))),
+          SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () { scope.soundEffectService.playTap(); setState(() => index = (index + 1) % allWords.length); }, child: const Text('Next'))),
         ]),
       ),
     );

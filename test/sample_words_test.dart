@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:happy_english_kids/data/sample_words.dart';
+import 'package:happy_english_kids/models/progress_data.dart';
 
 void main() {
   group('sample vocabulary content', () {
@@ -40,6 +41,16 @@ void main() {
         expect(word.simpleSentence, isNotEmpty);
         expect(word.difficulty, inInclusiveRange(1, 3));
       }
+    });
+  });
+
+  group('reward levels', () {
+    test('uses the kid reward thresholds', () {
+      expect(ProgressData.levelNameForStars(0), 'Rising Star');
+      expect(ProgressData.levelNameForStars(10), 'Little Star');
+      expect(ProgressData.levelNameForStars(30), 'Smart Learner');
+      expect(ProgressData.levelNameForStars(60), 'English Explorer');
+      expect(ProgressData.levelNameForStars(100), 'Super Speaker');
     });
   });
 }

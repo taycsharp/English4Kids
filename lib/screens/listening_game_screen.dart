@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../data/sample_words.dart';
+import '../models/progress_data.dart';
 import '../models/vocabulary_word.dart';
 import '../widgets/reward_dialog.dart';
 
@@ -35,13 +36,26 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
 
   Future<void> _answer(VocabularyWord word) async {
     final ok = word.id == target.id;
+    final scope = AppScope.of(context);
     if (ok) {
-      await AppScope.of(context).progressService.addStars(2, topic: target.topic);
+      final previous = await scope.progressService.loadProgress();
+      final updated = await scope.progressService.addStars(2, topic: target.topic);
       if (!mounted) return;
-      await RewardDialog.show(context, 'You are amazing! ⭐');
+      const feedbackText = 'You are amazing!';
+      setState(() => message = feedbackText);
+      await scope.ttsService.speakFeedback(feedbackText);
+      await scope.soundEffectService.playCorrect();
+      if (!mounted) return;
+      final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
+      await RewardDialog.show(context, levelUp ? 'You are amazing!\n${updated.levelName}!' : 'You are amazing!', levelUp: levelUp);
+      await scope.soundEffectService.playTap();
       if (mounted) setState(_newQuestion);
     } else {
-      setState(() => message = 'Good try! Listen one more time.');
+      if (!mounted) return;
+      const feedbackText = 'Good try! Listen one more time.';
+      setState(() => message = feedbackText);
+      await scope.ttsService.speakFeedback(feedbackText);
+      await scope.soundEffectService.playTryAgain();
     }
   }
 
