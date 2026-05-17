@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../data/sample_words.dart';
+import '../models/progress_data.dart';
 import '../models/vocabulary_word.dart';
 import '../widgets/reward_dialog.dart';
 
@@ -35,13 +36,19 @@ class _PictureQuizScreenState extends State<PictureQuizScreen> {
 
   Future<void> _answer(VocabularyWord word) async {
     final ok = word.id == target.id;
+    final scope = AppScope.of(context);
     if (ok) {
-      await AppScope.of(context).progressService.addStars(2, topic: target.topic);
+      final previous = await scope.progressService.loadProgress();
+      final updated = await scope.progressService.addStars(2, topic: target.topic);
+      await scope.soundEffectService.playCorrect();
       if (!mounted) return;
-      await RewardDialog.show(context, 'Great job! ⭐');
+      final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
+      await RewardDialog.show(context, levelUp ? 'Great job! ⭐\n${updated.levelName}!' : 'Great job! ⭐', levelUp: levelUp);
       if (mounted) setState(_newQuestion);
     } else {
-      setState(() => message = 'Try again! You can do it.');
+      await scope.soundEffectService.playTryAgain();
+      if (!mounted) return;
+      setState(() => message = 'Good try! You can do it!');
     }
   }
 

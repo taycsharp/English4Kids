@@ -17,11 +17,18 @@ class ProgressData {
   final Map<String, int> topicStars;
   final int streakDays;
 
-  String get levelName {
-    if (totalStars >= 120) return 'Super Speaker';
-    if (totalStars >= 70) return 'English Explorer';
-    if (totalStars >= 30) return 'Smart Learner';
-    return 'Little Star';
+  String get levelName => levelNameForStars(totalStars);
+
+  static String levelNameForStars(int stars) {
+    if (stars >= 100) return 'Super Speaker';
+    if (stars >= 60) return 'English Explorer';
+    if (stars >= 30) return 'Smart Learner';
+    if (stars >= 10) return 'Little Star';
+    return 'Rising Star';
+  }
+
+  static bool levelChanged(int previousStars, int newStars) {
+    return levelNameForStars(previousStars) != levelNameForStars(newStars);
   }
 
   ProgressData copyWith({

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../data/sample_words.dart';
+import '../models/progress_data.dart';
 import '../widgets/reward_dialog.dart';
 import '../widgets/word_card.dart';
 
@@ -25,17 +26,24 @@ class _PronunciationScreenState extends State<PronunciationScreen> {
       listening = true;
       feedback = 'I am listening...';
     });
+    final previous = await scope.progressService.loadProgress();
     final text = await scope.speechService.listenOnce();
     final ok = scope.speechService.matchesWord(text, word.word);
-    await scope.progressService.addPronunciationAttempt(word.id, ok);
+    final updated = await scope.progressService.addPronunciationAttempt(word.id, ok);
+    if (ok) {
+      await scope.soundEffectService.playCorrect();
+    } else {
+      await scope.soundEffectService.playTryAgain();
+    }
     if (!mounted) return;
     setState(() {
       listening = false;
       heard = text;
-      feedback = ok ? 'Great job! ⭐' : 'Good try! Say it again.';
+      feedback = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
     });
     if (ok) {
-      await RewardDialog.show(context, 'Good speaking! ⭐');
+      final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
+      await RewardDialog.show(context, levelUp ? 'Super speaking!\n${updated.levelName}!' : 'Super speaking!', levelUp: levelUp);
       if (mounted && index < allWords.length - 1) setState(() => index++);
     }
   }
@@ -66,7 +74,7 @@ class _PronunciationScreenState extends State<PronunciationScreen> {
             Expanded(child: FilledButton.tonalIcon(onPressed: listening ? null : _speak, icon: const Icon(Icons.mic_rounded), label: const Text('Speak'))),
           ]),
           const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => setState(() => index = (index + 1) % allWords.length), child: const Text('Next'))),
+          SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () { scope.soundEffectService.playTap(); setState(() => index = (index + 1) % allWords.length); }, child: const Text('Next'))),
         ]),
       ),
     );

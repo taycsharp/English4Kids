@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app.dart';
 import '../data/sample_words.dart';
+import '../models/progress_data.dart';
 import '../widgets/reward_dialog.dart';
 
 class SentencePracticeScreen extends StatefulWidget {
@@ -28,17 +29,24 @@ class _SentencePracticeScreenState extends State<SentencePracticeScreen> {
       listening = true;
       message = 'I am listening...';
     });
+    final previous = await scope.progressService.loadProgress();
     final text = await scope.speechService.listenOnce(timeout: const Duration(seconds: 6));
     final ok = scope.speechService.sentenceContainsKeywords(text, _keywords(word.simpleSentence));
-    await scope.progressService.addPronunciationAttempt(word.id, ok);
+    final updated = await scope.progressService.addPronunciationAttempt(word.id, ok);
+    if (ok) {
+      await scope.soundEffectService.playCorrect();
+    } else {
+      await scope.soundEffectService.playTryAgain();
+    }
     if (!mounted) return;
     setState(() {
       listening = false;
       heard = text;
-      message = ok ? 'Great sentence! ⭐' : 'Good try! Say it again.';
+      message = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
     });
     if (ok) {
-      await RewardDialog.show(context, 'Super speaker! ⭐');
+      final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
+      await RewardDialog.show(context, levelUp ? 'Super speaking!\n${updated.levelName}!' : 'Super speaking!', levelUp: levelUp);
       if (mounted) setState(() => index = (index + 1) % allWords.length);
     }
   }
@@ -73,7 +81,7 @@ class _SentencePracticeScreenState extends State<SentencePracticeScreen> {
             Expanded(child: FilledButton.tonalIcon(onPressed: listening ? null : _practice, icon: const Icon(Icons.mic_rounded), label: const Text('Speak'))),
           ]),
           const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => setState(() => index = (index + 1) % allWords.length), child: const Text('Next'))),
+          SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () { scope.soundEffectService.playTap(); setState(() => index = (index + 1) % allWords.length); }, child: const Text('Next'))),
         ]),
       ),
     );

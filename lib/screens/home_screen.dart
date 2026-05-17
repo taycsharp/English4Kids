@@ -170,7 +170,7 @@ class _HomeHeader extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Hello, $name! $levelName',
+                'Hello, $name! Level: $levelName',
                 style: textTheme.titleMedium?.copyWith(
                   color: const Color(0xFF6C6385),
                   fontWeight: FontWeight.w800,
