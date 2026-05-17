@@ -40,6 +40,10 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
     if (ok) {
       final previous = await scope.progressService.loadProgress();
       final updated = await scope.progressService.addStars(2, topic: target.topic);
+      if (!mounted) return;
+      const feedbackText = 'You are amazing!';
+      setState(() => message = feedbackText);
+      await scope.ttsService.speakFeedback(feedbackText);
       await scope.soundEffectService.playCorrect();
       if (!mounted) return;
       final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
@@ -47,9 +51,11 @@ class _ListeningGameScreenState extends State<ListeningGameScreen> {
       await scope.soundEffectService.playTap();
       if (mounted) setState(_newQuestion);
     } else {
-      await scope.soundEffectService.playTryAgain();
       if (!mounted) return;
-      setState(() => message = 'Good try! Listen one more time.');
+      const feedbackText = 'Good try! Listen one more time.';
+      setState(() => message = feedbackText);
+      await scope.ttsService.speakFeedback(feedbackText);
+      await scope.soundEffectService.playTryAgain();
     }
   }
 

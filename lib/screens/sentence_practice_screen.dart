@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app.dart';
@@ -23,6 +24,7 @@ class _SentencePracticeScreenState extends State<SentencePracticeScreen> {
   }
 
   Future<void> _practice() async {
+    debugPrint('[SentencePracticeScreen] Speak button tapped');
     final scope = AppScope.of(context);
     final word = allWords[index];
     setState(() {
@@ -31,23 +33,33 @@ class _SentencePracticeScreenState extends State<SentencePracticeScreen> {
     });
     final previous = await scope.progressService.loadProgress();
     final text = await scope.speechService.listenOnce(timeout: const Duration(seconds: 6));
+    await scope.speechService.stopListening();
+
     final ok = scope.speechService.sentenceContainsKeywords(text, _keywords(word.simpleSentence));
+    final feedbackText = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
+    debugPrint('[SentencePracticeScreen] feedback text created: $feedbackText');
     final updated = await scope.progressService.addPronunciationAttempt(word.id, ok);
-    if (ok) {
-      await scope.soundEffectService.playCorrect();
-    } else {
-      await scope.soundEffectService.playTryAgain();
-    }
+
     if (!mounted) return;
     setState(() {
       listening = false;
       heard = text;
-      message = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
+      message = feedbackText;
     });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    debugPrint('[SentencePracticeScreen] before calling speakFeedback: $feedbackText');
+    await scope.ttsService.speakFeedback(feedbackText);
+    debugPrint('[SentencePracticeScreen] after calling speakFeedback');
+
     if (ok) {
+      await scope.soundEffectService.playCorrect();
+      if (!mounted) return;
       final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
       await RewardDialog.show(context, levelUp ? 'Super speaking!\n${updated.levelName}!' : 'Super speaking!', levelUp: levelUp);
       if (mounted) setState(() => index = (index + 1) % allWords.length);
+    } else {
+      await scope.soundEffectService.playTryAgain();
     }
   }
 

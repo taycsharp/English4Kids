@@ -41,6 +41,9 @@ class _VocabularyScreenState extends State<VocabularyScreen> {
                 final previous = await scope.progressService.loadProgress();
                 await scope.progressService.markLearned(word.id);
                 final updated = await scope.progressService.addStars(1, topic: widget.topic.name);
+                if (!context.mounted) return;
+                const feedbackText = 'You got a star!';
+                await scope.ttsService.speakFeedback(feedbackText);
                 await scope.soundEffectService.playCorrect();
                 if (!context.mounted) return;
                 final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);

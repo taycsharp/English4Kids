@@ -40,15 +40,21 @@ class _PictureQuizScreenState extends State<PictureQuizScreen> {
     if (ok) {
       final previous = await scope.progressService.loadProgress();
       final updated = await scope.progressService.addStars(2, topic: target.topic);
+      if (!mounted) return;
+      const feedbackText = 'Great job! ⭐';
+      setState(() => message = feedbackText);
+      await scope.ttsService.speakFeedback(feedbackText);
       await scope.soundEffectService.playCorrect();
       if (!mounted) return;
       final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
       await RewardDialog.show(context, levelUp ? 'Great job! ⭐\n${updated.levelName}!' : 'Great job! ⭐', levelUp: levelUp);
       if (mounted) setState(_newQuestion);
     } else {
-      await scope.soundEffectService.playTryAgain();
       if (!mounted) return;
-      setState(() => message = 'Good try! You can do it!');
+      const feedbackText = 'Good try! You can do it!';
+      setState(() => message = feedbackText);
+      await scope.ttsService.speakFeedback(feedbackText);
+      await scope.soundEffectService.playTryAgain();
     }
   }
 

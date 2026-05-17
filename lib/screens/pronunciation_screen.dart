@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app.dart';
@@ -20,6 +21,7 @@ class _PronunciationScreenState extends State<PronunciationScreen> {
   bool listening = false;
 
   Future<void> _speak() async {
+    debugPrint('[PronunciationScreen] Speak button tapped');
     final scope = AppScope.of(context);
     final word = allWords[index];
     setState(() {
@@ -28,24 +30,41 @@ class _PronunciationScreenState extends State<PronunciationScreen> {
     });
     final previous = await scope.progressService.loadProgress();
     final text = await scope.speechService.listenOnce();
+    await scope.speechService.stopListening();
+
     final ok = scope.speechService.matchesWord(text, word.word);
+    final feedbackText = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
+    debugPrint('[PronunciationScreen] feedback text created: $feedbackText');
     final updated = await scope.progressService.addPronunciationAttempt(word.id, ok);
-    if (ok) {
-      await scope.soundEffectService.playCorrect();
-    } else {
-      await scope.soundEffectService.playTryAgain();
-    }
+
     if (!mounted) return;
     setState(() {
       listening = false;
       heard = text;
-      feedback = ok ? 'Super speaking! ⭐' : 'Good try! Say it slowly.';
+      feedback = feedbackText;
     });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    debugPrint('[PronunciationScreen] before calling speakFeedback: $feedbackText');
+    await scope.ttsService.speakFeedback(feedbackText);
+    debugPrint('[PronunciationScreen] after calling speakFeedback');
+
     if (ok) {
+      await scope.soundEffectService.playCorrect();
+      if (!mounted) return;
       final levelUp = ProgressData.levelChanged(previous.totalStars, updated.totalStars);
       await RewardDialog.show(context, levelUp ? 'Super speaking!\n${updated.levelName}!' : 'Super speaking!', levelUp: levelUp);
       if (mounted && index < allWords.length - 1) setState(() => index++);
+    } else {
+      await scope.soundEffectService.playTryAgain();
     }
+  }
+
+  Future<void> _replayFeedback() async {
+    final scope = AppScope.of(context);
+    debugPrint('[PronunciationScreen] before calling speakFeedback: $feedback');
+    await scope.ttsService.speakFeedback(feedback);
+    debugPrint('[PronunciationScreen] after calling speakFeedback');
   }
 
   @override
@@ -63,7 +82,18 @@ class _PronunciationScreenState extends State<PronunciationScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
             child: Column(children: [
-              Text(feedback, textAlign: TextAlign.center, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(child: Text(feedback, textAlign: TextAlign.center, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900))),
+                  const SizedBox(width: 8),
+                  IconButton.filledTonal(
+                    tooltip: 'Replay feedback',
+                    onPressed: listening ? null : _replayFeedback,
+                    icon: const Icon(Icons.volume_up_rounded),
+                  ),
+                ],
+              ),
               if (heard.isNotEmpty) Text('I heard: $heard', style: const TextStyle(fontSize: 18, color: Colors.black54)),
             ]),
           ),
